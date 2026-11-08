@@ -1,0 +1,41 @@
+digraph alur_data {
+  graph [rankdir=LR, fontname="Helvetica", nodesep=0.30, ranksep=0.55, bgcolor="white",
+         pad=0.22, compound=true];
+  node  [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=9,
+         fillcolor="#FFFFFF", color="#5A6B7B", margin="0.12,0.06", height=0.40];
+  edge  [color="#5A6B7B", arrowsize=0.6, fontname="Helvetica", fontsize=7.2];
+
+  subgraph cluster_live {
+    label="JALUR A — LIVE (target: tampilan < 1 s dari peristiwa)"; fontsize=9; fontcolor="#2E7D4F";
+    style="rounded"; color="#2E7D4F"; bgcolor="#F2F8F4";
+    a1 [label="Sensor\n1–10 Hz"];
+    a2 [label="Gateway tepi\ncap waktu"];
+    a3 [label="Broker / WebSocket\nfan-out"];
+    a4 [label="Viewer\ninterpolasi 60 fps"];
+    a1 -> a2 -> a3 -> a4;
+  }
+
+  subgraph cluster_replay {
+    label="JALUR B — REPLAY (post-mortem, tanpa klaim real-time)"; fontsize=9; fontcolor="#2E6E9E";
+    style="rounded"; color="#2E6E9E"; bgcolor="#F1F5FA";
+    b1 [label="Arsip kanonik\nparquet/DB"];
+    b2 [label="Query rentang waktu\n(unit · zona · event)"];
+    b3 [label="Playback engine\n1x / 2x / 8x"];
+    b4 [label="Viewer\nsama, mode REPLAY"];
+    b1 -> b2 -> b3 -> b4;
+  }
+
+  subgraph cluster_sim {
+    label="JALUR C — SIMULASI (data sintetis, WAJIB berlabel)"; fontsize=9; fontcolor="#C8892A";
+    style="rounded,dashed"; color="#C8892A"; bgcolor="#FDF7EC";
+    c1 [label="Skenario\nJSON / CSV"];
+    c2 [label="Simulator\njalankan aturan"];
+    c3 [label="Viewer\nmode SIMULASI"];
+    c1 -> c2 -> c3;
+  }
+
+  radar [label="Radar 77 GHz\nobject list: BELUM ADA", fillcolor="#FBE3E4", color="#E11B22"];
+  radar -> a2 [style=dashed, color="#E11B22", label=" blocked", fontcolor="#E11B22"];
+
+  a3 -> b1 [label=" tulis\n arsip", constraint=false];
+}

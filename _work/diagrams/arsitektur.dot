@@ -1,0 +1,80 @@
+digraph arsitektur {
+  graph [rankdir=TB, fontname="Helvetica", fontsize=10, nodesep=0.26, ranksep=0.44,
+         bgcolor="white", pad=0.2, compound=true, newrank=true];
+  node  [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=9,
+         fillcolor="#FFFFFF", color="#5A6B7B", penwidth=1.0, margin="0.11,0.06", height=0.42];
+  edge  [color="#5A6B7B", penwidth=1.0, arrowsize=0.6, fontname="Helvetica", fontsize=7.2];
+
+  /* ---------- LAPIS 1 ---------- */
+  subgraph cluster_src {
+    label="LAPIS 1 — SUMBER DATA (di lapangan)"; fontsize=9; fontcolor="#16324F";
+    style="rounded,dashed"; color="#9AA7B5"; bgcolor="#F7F9FB"; margin=8;
+    node [fillcolor="#E8F0F7"];
+    gnss  [label="GNSS / RTK\nLC29H · NMEA 0183\n1 Hz (maks 10 Hz)"];
+    obu   [label="Telemetri unit\nCAN/J1939 → CSV\nkecepatan · RPM · beban"];
+    radar [label="Radar 77 GHz\nPSA27 / C95M\nkeluaran = alarm\nbukan object list", fillcolor="#FBE3E4", color="#E11B22"];
+    cam   [label="Kamera / MDVR\nJT808 · video\n+ timestamp"];
+    drone [label="Survei drone\northomosaic + GCP\nDSM: belum ada", fillcolor="#FFF3DC", color="#C8892A"];
+  }
+
+  /* ---------- LAPIS 2 ---------- */
+  subgraph cluster_ing {
+    label="LAPIS 2 — INGESTION & NORMALISASI"; fontsize=9; fontcolor="#16324F";
+    style="rounded,dashed"; color="#9AA7B5"; bgcolor="#F7F9FB"; margin=8;
+    node [fillcolor="#E8F0F7"];
+    gw    [label="Gateway tepi\ncap waktu · buffer\nantrean saat sinyal hilang"];
+    adapt [label="Adapter per sumber\nNMEA → kanonik\nOBU CSV → kanonik\nGeoTIFF → 3D Tiles"];
+    kanon [label="Skema kanonik (Bab 5.1)\nsatu baris = satu sampel", fillcolor="#E4F0E8", color="#2E7D4F"];
+  }
+
+  /* ---------- LAPIS 3 ---------- */
+  subgraph cluster_be {
+    label="LAPIS 3 — BACKEND"; fontsize=9; fontcolor="#16324F";
+    style="rounded,dashed"; color="#9AA7B5"; bgcolor="#F7F9FB"; margin=8;
+    node [fillcolor="#E8F0F7"];
+    tsdb  [label="Time-series store\nposisi · telemetri"];
+    geo   [label="Geo & aset\ngeofence · haul road\n3D Tiles · terrain"];
+    rule  [label="Mesin aturan\ntempo · geofence · zona\n(kelayakan, bukan UI)", fillcolor="#FFF3DC", color="#C8892A"];
+    svc   [label="Layanan real-time\nWebSocket fan-out\nREST untuk replay", fillcolor="#E4F0E8", color="#2E7D4F"];
+  }
+
+  /* ---------- LAPIS 4 ---------- */
+  subgraph cluster_vw {
+    label="LAPIS 4 — 3D VIEWER (browser)"; fontsize=9; fontcolor="#16324F";
+    style="rounded"; color="#16324F"; bgcolor="#EEF3F8"; penwidth=1.2; margin=8;
+    node [fillcolor="#DCE8F2"];
+    scene [label="Scene 3D\nterrain + orthomosaic\n+ model armada"];
+    over  [label="Overlay operasional\ntrail · geofence · label\nzona bahaya"];
+    mode  [label="Mode: LIVE / REPLAY / SIMULASI\n(label wajib tampil di layar)"];
+    ui    [label="Panel UI\nfilter · timeline\nkartu unit"];
+  }
+
+  gnss  -> gw;
+  obu   -> gw;
+  cam   -> gw;
+  radar -> gw [style=dashed, color="#E11B22", label="  BELUM ADA\n  kontrak data", fontcolor="#E11B22"];
+  drone -> adapt [style=dashed, label="  offline\n  harian/mingguan"];
+
+  gw    -> adapt;
+  adapt -> kanon;
+  kanon -> tsdb [label=" stream"];
+  adapt -> geo  [label=" batch\n aset & peta"];
+  tsdb  -> svc;
+  geo   -> svc;
+  tsdb  -> rule;
+  rule  -> svc [label=" event", color="#C8892A"];
+
+  svc  -> scene [label=" posisi & atribut"];
+  geo  -> scene [label=" tile & mesh"];
+  svc  -> over;
+  svc  -> ui;
+  scene -> over [style=invis];
+  over  -> mode [style=invis];
+  mode  -> ui   [style=invis];
+
+  { rank=same; gnss; obu; radar; cam; drone; }
+  { rank=same; gw; }
+  { rank=same; adapt; kanon; }
+  { rank=same; tsdb; geo; rule; svc; }
+  { rank=same; scene; over; mode; ui; }
+}

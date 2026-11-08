@@ -1,0 +1,32 @@
+digraph koordinat {
+  graph [rankdir=TB, fontname="Helvetica", nodesep=0.55, ranksep=0.34, bgcolor="white", pad=0.18];
+  node  [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=8.6,
+         fillcolor="#FFFFFF", color="#5A6B7B", margin="0.10,0.05", height=0.38];
+  edge  [color="#5A6B7B", arrowsize=0.55, fontname="Helvetica", fontsize=7.0];
+
+  subgraph cluster_glob {
+    label="KERANGKA GLOBAL — tempat semua posisi armada disimpan"; fontsize=8.5; fontcolor="#16324F";
+    style="rounded"; color="#16324F"; bgcolor="#EEF3F8";
+    wgs [label="WGS 84 geodetik · EPSG:4326\nlat · lon · tinggi ellipsoid"];
+    ecef[label="WGS 84 geosentrik · EPSG:4978\nX · Y · Z dalam meter", fillcolor="#DCE8F2"];
+    utm [label="UTM 50S · EPSG:32750\nE · N · h dalam meter", fillcolor="#DCE8F2"];
+    til [label="Tile 3D / glTF · ENU lokal per tile\nY ke atas (bukan Z)", fillcolor="#E4F0E8", color="#2E7D4F"];
+    wgs -> ecef [label=" geodetik → ECEF"];
+    wgs -> utm  [label=" proyeksi peta"];
+    ecef -> til [label=" ECEF → ENU\n(titik acuan tile)"];
+    utm  -> til [label=" offset", style=dashed];
+  }
+
+  subgraph cluster_rel {
+    label="KERANGKA RELATIF — tempat model & objek sensor hidup"; fontsize=8.5; fontcolor="#C8892A";
+    style="rounded"; color="#C8892A"; bgcolor="#FDF7EC";
+    veh [label="Kerangka kendaraan\nX maju · Y kiri · Z atas (ISO 8855)", fillcolor="#FFF3DC", color="#C8892A"];
+    sen [label="Kerangka sensor\nradar terpasang di bumper: translasi + rotasi", fillcolor="#FFF3DC", color="#C8892A"];
+    obj [label="Objek terdeteksi\njarak r · sudut θ relatif terhadap sensor", fillcolor="#FFF3DC", color="#C8892A"];
+    veh -> sen [label=" matriks pemasangan"];
+    sen -> obj [label=" r,θ → x,y"];
+  }
+
+  til -> veh [label=" posisi + heading armada", ltail=cluster_glob, lhead=cluster_rel];
+  obj -> veh [label=" ke global hanya bila\nheading valid (R-6)", style=dashed, color="#E11B22", constraint=false];
+}
